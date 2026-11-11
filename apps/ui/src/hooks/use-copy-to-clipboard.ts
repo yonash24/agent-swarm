@@ -34,6 +34,7 @@ const RESET_MS = 1500;
 export function useCopyToClipboard<K extends string = string>(): UseCopyToClipboardResult<K> {
   const [copiedKey, setCopiedKey] = useState<K | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestRequest = useRef(0);
 
   useEffect(
     () => () => {
@@ -43,9 +44,11 @@ export function useCopyToClipboard<K extends string = string>(): UseCopyToClipbo
   );
 
   const copy = useCallback(async (value: string, key?: K) => {
+    const request = ++latestRequest.current;
     try {
       if (typeof navigator === "undefined" || !navigator.clipboard) return false;
       await navigator.clipboard.writeText(value);
+      if (request !== latestRequest.current) return true;
       const k = (key ?? ("default" as K)) as K;
       setCopiedKey(k);
       if (timer.current) clearTimeout(timer.current);
